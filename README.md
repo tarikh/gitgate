@@ -271,7 +271,7 @@ bundled Slack/Calendar/etc. connectors (drive gitgate from them instead).
 
 ## Origins and status
 
-Extracted from [Founder CoS](https://github.com/tarikh/founder-cos) — an
+Extracted from [Founder CoS](https://foundercos.com) — an
 agentic chief of staff for founders that runs the same brain across four
 substrates — where the switchable Claude/Codex engine needed a way to let a
 second model runtime do real work without letting it own production Git
