@@ -6,7 +6,7 @@
 // the run reports anything, and it is never resolved or retried automatically
 // because a deterministic conflict re-runs identically every time.
 //
-// Ported from Kubrick's writer.ts, minus the parts that only matter for a
+// Ported from Founder CoS's brain writer, minus the parts that only matter for a
 // long-lived shared clone (stale locks, salvage, detached-HEAD repair): a
 // disposable clone is born clean and dies after one publication.
 import { git, gitOk, stamp } from "./git.js";

@@ -271,14 +271,15 @@ bundled Slack/Calendar/etc. connectors (drive gitgate from them instead).
 
 ## Origins and status
 
-Extracted from [Kubrick](https://github.com/tarikh/kubrick-x0000), a
-self-hosted Slack chief-of-staff whose Claude/Codex engine switch needed a way
-to let a second model runtime do real work without letting it own production
-Git writes. The invariants above are the ones that survived contact with a
-live system; the incidents in "The problem" are its incidents.
+Extracted from [Founder CoS](https://github.com/tarikh/founder-cos) — an
+agentic chief of staff for founders that runs the same brain across four
+substrates — where the switchable Claude/Codex engine needed a way to let a
+second model runtime do real work without letting it own production Git
+writes. The invariants above are the ones that survived contact with a live
+system; the incidents in "The problem" are its incidents.
 
 **Status: 0.1 — early.** The contract is stable in intent; option names may
-still move. Kubrick is the first production consumer. Issues and PRs welcome,
-especially failing tests that show a way through the boundary.
+still move. Founder CoS is the first production consumer. Issues and PRs
+welcome, especially failing tests that show a way through the boundary.
 
 MIT.
