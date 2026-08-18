@@ -40,6 +40,16 @@ test("pushed: a local clone as `repo` publishes to ITS origin, from origin's tip
   assert.throws(() => remoteFile(f, "docs/local-only.md"));
 });
 
+test("read-only runs and manager construction never create the runs directory", async () => {
+  const f = fixture("no-runs-dir");
+  const { createRunsManager } = await import("../dist/index.js");
+  createRunsManager({ runsDir: f.runs, log: () => {} });
+  assert.equal(fs.existsSync(f.runs), false, "constructing a manager created the runs dir");
+  await run(job(f, { mode: "read-only", policy: undefined }), { prompt: "NOOP" });
+  // read-only still needs a disposable clone, so the dir exists afterwards but is empty
+  assert.deepEqual(runDirs(f), []);
+});
+
 test("clean: an engine that changes nothing publishes nothing", async () => {
   const f = fixture("clean");
   const before = remoteHead(f);

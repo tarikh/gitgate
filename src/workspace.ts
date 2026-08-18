@@ -62,23 +62,28 @@ export const MARKERS = {
   job: "job.json",
 } as const;
 
-function canonicalRunsDir(dir: string): string {
-  const abs = resolve(dir);
-  mkdirSync(abs, { recursive: true, mode: 0o700 });
-  return realpathSync(abs);
-}
-
 export function createRunsManager(options: RunsManagerOptions = {}) {
   // Canonical (realpath) so every path handed to the engine — GITGATE_WORKSPACE,
-  // TMPDIR, prompt/output files — matches what its own process.cwd() reports.
-  // macOS's /var → /private/var symlink is the classic case.
-  const runsDir = canonicalRunsDir(options.runsDir ?? defaultRunsDir());
+  // TMPDIR, prompt/output files — matches what its own process.cwd() reports
+  // (macOS's /var → /private/var symlink is the classic case). Resolved lazily:
+  // constructing a manager, or a read-only run, must not create the directory.
+  let runsDir = resolve(options.runsDir ?? defaultRunsDir());
+  let canonical = false;
   const queuedRunCap = options.queuedRunCap ?? 5;
   const log = options.log ?? ((line: string) => console.error(line));
+
+  function dir(): string {
+    if (!canonical && existsSync(runsDir)) {
+      runsDir = realpathSync(runsDir);
+      canonical = true;
+    }
+    return runsDir;
+  }
 
   function ensureRunsDir(): void {
     mkdirSync(runsDir, { recursive: true, mode: 0o700 });
     chmodSync(runsDir, 0o700);
+    dir();
   }
 
   function assertRunDir(runDir: string): void {
@@ -88,7 +93,7 @@ export function createRunsManager(options: RunsManagerOptions = {}) {
     } catch {
       // does not exist: compare as given
     }
-    if (dirname(target) !== runsDir || !basename(target).startsWith("run-")) {
+    if (dirname(target) !== dir() || !basename(target).startsWith("run-")) {
       throw new Error(`refusing to touch a path outside the runs directory: ${runDir}`);
     }
   }
@@ -170,9 +175,9 @@ export function createRunsManager(options: RunsManagerOptions = {}) {
   async function recoverInterrupted(): Promise<string[]> {
     ensureRunsDir();
     const recovered: string[] = [];
-    for (const name of readdirSync(runsDir)) {
+    for (const name of readdirSync(dir())) {
       if (!name.startsWith("run-")) continue;
-      const runDir = join(runsDir, name);
+      const runDir = join(dir(), name);
       if (!lstatSync(runDir).isDirectory()) continue;
       if (existsSync(join(runDir, MARKERS.queued))) continue; // already waiting for a human
       if (existsSync(join(runDir, MARKERS.outcome))) continue; // finished run kept with --keep
@@ -204,19 +209,19 @@ export function createRunsManager(options: RunsManagerOptions = {}) {
   }
 
   function queued(): string[] {
-    if (!existsSync(runsDir)) return [];
-    return readdirSync(runsDir)
-      .filter((n) => n.startsWith("run-") && existsSync(join(runsDir, n, MARKERS.queued)))
-      .map((n) => join(runsDir, n));
+    if (!existsSync(dir())) return [];
+    return readdirSync(dir())
+      .filter((n) => n.startsWith("run-") && existsSync(join(dir(), n, MARKERS.queued)))
+      .map((n) => join(dir(), n));
   }
 
   /** Every run directory (retained or in flight) with its markers, for `gitgate runs list`. */
   function list(): Array<{ runDir: string; state: "active" | "queued" | "kept"; info: Record<string, unknown> }> {
-    if (!existsSync(runsDir)) return [];
+    if (!existsSync(dir())) return [];
     const out: Array<{ runDir: string; state: "active" | "queued" | "kept"; info: Record<string, unknown> }> = [];
-    for (const n of readdirSync(runsDir).sort()) {
+    for (const n of readdirSync(dir()).sort()) {
       if (!n.startsWith("run-")) continue;
-      const runDir = join(runsDir, n);
+      const runDir = join(dir(), n);
       const read = (f: string) => {
         try {
           return JSON.parse(readFileSync(join(runDir, f), "utf8")) as Record<string, unknown>;
@@ -261,7 +266,7 @@ export function createRunsManager(options: RunsManagerOptions = {}) {
       );
     }
     ensureRunsDir();
-    const runDir = mkdtempSync(join(runsDir, "run-"));
+    const runDir = mkdtempSync(join(dir(), "run-"));
     chmodSync(runDir, 0o700);
     marker(runDir, MARKERS.active, { pid: process.pid, startedAt: new Date().toISOString() });
     const checkout = join(runDir, "checkout");
@@ -316,7 +321,9 @@ export function createRunsManager(options: RunsManagerOptions = {}) {
   }
 
   return {
-    runsDir,
+    get runsDir() {
+      return dir();
+    },
     prepare,
     restoreTrustedGit,
     recoverInterrupted,
