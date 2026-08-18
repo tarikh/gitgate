@@ -12,6 +12,7 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -61,8 +62,17 @@ export const MARKERS = {
   job: "job.json",
 } as const;
 
+function canonicalRunsDir(dir: string): string {
+  const abs = resolve(dir);
+  mkdirSync(abs, { recursive: true, mode: 0o700 });
+  return realpathSync(abs);
+}
+
 export function createRunsManager(options: RunsManagerOptions = {}) {
-  const runsDir = resolve(options.runsDir ?? defaultRunsDir());
+  // Canonical (realpath) so every path handed to the engine — GITGATE_WORKSPACE,
+  // TMPDIR, prompt/output files — matches what its own process.cwd() reports.
+  // macOS's /var → /private/var symlink is the classic case.
+  const runsDir = canonicalRunsDir(options.runsDir ?? defaultRunsDir());
   const queuedRunCap = options.queuedRunCap ?? 5;
   const log = options.log ?? ((line: string) => console.error(line));
 
@@ -72,7 +82,12 @@ export function createRunsManager(options: RunsManagerOptions = {}) {
   }
 
   function assertRunDir(runDir: string): void {
-    const target = resolve(runDir);
+    let target = resolve(runDir);
+    try {
+      target = realpathSync(target);
+    } catch {
+      // does not exist: compare as given
+    }
     if (dirname(target) !== runsDir || !basename(target).startsWith("run-")) {
       throw new Error(`refusing to touch a path outside the runs directory: ${runDir}`);
     }

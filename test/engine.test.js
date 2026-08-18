@@ -33,6 +33,18 @@ test("TMPDIR is scoped to the run so engine scratch never lands in the shared te
   assert.match(o.reply, /\/run-[^/]+\/tmp$/);
 });
 
+test("a runs_dir reached through a symlink still hands the engine canonical paths (macOS /var → /private/var)", async () => {
+  const f = fixture("symlinked-runs");
+  const real = path.join(f.dir, "real-runs");
+  fs.mkdirSync(real);
+  const link = path.join(f.dir, "runs-link");
+  fs.symlinkSync(real, link);
+  // fake-engine exits 64 unless GITGATE_WORKSPACE === process.cwd() (a realpath)
+  const o = await run(job(f, { runs_dir: link }), { prompt: "WRITE_ALLOWED" });
+  assert.equal(o.status, "pushed", o.reason);
+  assert.deepEqual(fs.readdirSync(real), []);
+});
+
 test("a job cannot override the GITGATE_* contract via engine.env", () => {
   const ctx = { jobName: "j", mode: "write", workspace: "/w", promptFile: "/p", prompt: "hi", outputFile: "/o", logDir: "/l", tmpDir: "/t" };
   const env = engineEnvironment({ command: ["x"], env: { GITGATE_WORKSPACE: "/evil", HOME: "/other" }, pass_env: [] }, ctx);
