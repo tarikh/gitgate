@@ -1,0 +1,44 @@
+{
+  "name": "gitgate",
+  "version": "0.1.0",
+  "description": "The model proposes, git decides. Run any AI coding agent in a disposable clone; trusted code audits, publishes, and proves the result.",
+  "license": "MIT",
+  "author": "Tarikh Korula",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tarikh/gitgate.git"
+  },
+  "homepage": "https://github.com/tarikh/gitgate#readme",
+  "bugs": "https://github.com/tarikh/gitgate/issues",
+  "keywords": ["ai", "agent", "git", "codex", "claude", "policy", "sandbox", "automation", "llm"],
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "gitgate": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "examples", "README.md", "THREAT-MODEL.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "npm run build && node --test 'test/*.test.js'",
+    "prepublishOnly": "npm test"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,55 @@
+# A scheduled documentation job run by the Codex CLI.
+#
+#   gitgate run examples/docs-refresh-codex.yml --dry-run     # rehearse: audit, don't publish
+#   gitgate run examples/docs-refresh-codex.yml               # for real
+#
+# Codex runs in gitgate's disposable clone with its own workspace-write sandbox
+# and no network; gitgate then audits what changed and is the only thing that
+# ever commits or pushes.
+name: docs-refresh
+repo: git@github.com:example/handbook.git
+branch: main
+mode: write
+timeout: 10m
+
+engine:
+  command:
+    - codex
+    - exec
+    - --ephemeral
+    - --skip-git-repo-check
+    - --sandbox
+    - workspace-write
+    - -C
+    - "{workspace}"
+    - -c
+    - approval_policy="never"
+    - -c
+    - sandbox_workspace_write.network_access=false
+    - -o
+    - "{output_file}"
+    - "{prompt}"
+  # Codex keeps its login under $CODEX_HOME (default ~/.codex). Point it at a
+  # dedicated one; see THREAT-MODEL.md for why the engine's HOME matters.
+  env:
+    CODEX_HOME: /var/lib/gitgate/codex-home
+
+policy:
+  allow:
+    - docs/**
+  deny:
+    - docs/legal/**
+  allow_deletions: false
+  allow_executable: false
+  ignored_files: reject
+  max_changed_files: 25
+
+publish:
+  commit_message: "docs: scheduled refresh (gitgate/docs-refresh)"
+  author_name: docs-bot
+  author_email: docs-bot@example.com
+
+prompt: |
+  Read AGENTS.md and docs/. Fix stale statements, broken relative links and
+  obvious typos in docs/. Do not restructure. Do not touch anything outside docs/.
+  When you finish, write a two-line summary of what you changed as your final message.

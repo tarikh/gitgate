@@ -1,0 +1,23 @@
+# /etc/systemd/system/gitgate-docs-refresh.service
+[Unit]
+Description=gitgate: docs-refresh job
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=gitgate
+Group=gitgate
+WorkingDirectory=/var/lib/gitgate
+Environment=XDG_STATE_HOME=/var/lib/gitgate/state
+# The publisher's git identity/credentials come from THIS environment (e.g. an
+# SSH deploy key in ~gitgate/.ssh). They are not passed to the engine unless the
+# job's engine.pass_env names them.
+ExecStart=/usr/local/bin/gitgate run /etc/gitgate/docs-refresh.yml --json --quiet
+# exit 2 (parked/queued) and 3 (rejected) are expected outcomes, not crashes;
+# let the timer keep firing and alert on the JSON instead.
+SuccessExitStatus=2 3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/gitgate

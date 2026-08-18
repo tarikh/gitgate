@@ -1,0 +1,33 @@
+# The same idea with Claude Code as the engine. Claude Code runs headless
+# (`-p`) with only file tools allowed; gitgate still audits every path it
+# touched, and it never gets to run git against the trusted metadata.
+name: changelog-claude
+repo: /srv/checkouts/app        # a local clone: gitgate publishes to ITS origin
+branch: main
+timeout: 15m
+
+engine:
+  command:
+    - claude
+    - -p
+    - "{prompt}"
+    - --allowedTools
+    - "Read,Glob,Grep,Edit,Write"
+    - --output-format
+    - text
+  # Claude Code's login lives under $HOME/.claude — the engine's HOME must have it.
+  # Use a dedicated Unix user or a dedicated HOME rather than your own; see THREAT-MODEL.md.
+  home: /var/lib/gitgate/claude-home
+
+policy:
+  allow:
+    - CHANGELOG.md
+    - docs/releases/**
+  max_changed_files: 5
+
+publish:
+  commit_message: "chore: update changelog"
+
+prompt: |
+  Update CHANGELOG.md's Unreleased section from the commits since the last tag.
+  Reply with the entries you added.

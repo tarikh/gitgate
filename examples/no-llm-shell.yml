@@ -1,0 +1,20 @@
+# No model at all — the engine is a shell command. Useful for seeing exactly
+# what gitgate does before you plug in an agent, and for CI-style maintenance
+# jobs (formatters, generated docs) that want the same audit-and-prove path.
+#
+#   gitgate run examples/no-llm-shell.yml --dry-run --keep
+#   gitgate runs list
+name: regen-toc
+repo: ./                    # relative to this file; publishes to this clone's origin
+branch: main
+timeout: 2m
+
+engine:
+  command: |
+    ./scripts/regen-toc.sh docs/ && printf 'regenerated docs/TOC.md' > "$GITGATE_OUTPUT_FILE"
+
+policy:
+  allow: [docs/TOC.md]
+
+publish:
+  commit_message: "docs: regenerate table of contents"
