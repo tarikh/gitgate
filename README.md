@@ -2,11 +2,37 @@
 
 **The model proposes, git decides.**
 
-gitgate runs any AI coding agent — Codex CLI, Claude Code, aider, your own loop —
-inside a disposable clone that contains **no trusted Git metadata**, then has
-trusted code (not the model) audit what changed against a small declarative
-policy, commit exactly the approved paths, push, and **verify the push landed
-before reporting anything**.
+## The problem
+
+The moment you let an AI coding agent write to a real repository unattended —
+on a timer, from a Slack command, in a loop — you inherit a set of failure
+modes that have nothing to do with how good the model is:
+
+- The agent **reports success before the remote proves it.** A push fails three
+  times and the summary still says "✅ landed".
+- A **timeout becomes a later write.** The agent is killed, but a grandchild
+  process (or a retry path) finishes the write after you stopped watching.
+- The write set is derived from **the agent's own tool events**, so anything it
+  did outside the tools you hooked — a shell `sed`, a `mv`, a `git commit` —
+  never gets audited.
+- The agent **commits, rebases, or force-pushes itself**, and now history is
+  the model's opinion.
+- **Ambiguous work is destroyed** to clear a queue: a push that might have
+  landed, a conflict nobody looked at, a run interrupted mid-flight.
+- Nobody thinks about **executable bits, symlinks, nested `.git` directories,
+  gitlinks, or ignored files** until one of them ends up on `main`.
+
+Each of those is a real incident this code was shaped by, not a hypothetical.
+Prompting harder does not fix any of them: they are all cases where the thing
+producing the change is also the thing deciding the change is fine.
+
+## What gitgate does
+
+gitgate splits those two jobs apart. It runs any AI coding agent — Codex CLI,
+Claude Code, aider, your own loop — inside a disposable clone that contains
+**no trusted Git metadata**, then has trusted code (not the model) audit what
+changed against a small declarative policy, commit exactly the approved paths,
+push, and **verify the push landed before reporting anything**.
 
 ```
    your prompt / a systemd timer / a Slack bot / CI
@@ -33,33 +59,14 @@ before reporting anything**.
    one of nine truthful outcomes, as JSON and as an exit code
 ```
 
+The goal is to make each failure above structurally impossible rather than
+merely unlikely — and to say plainly what gitgate does *not* protect against
+(see [THREAT-MODEL.md](THREAT-MODEL.md)).
+
 It is not an agent framework and it does not care which model you use. It is
 the boundary between *change production* (the model's job) and *change
-publication* (yours), packaged so you don't have to rediscover the failure modes
-we did.
-
-## Why this exists
-
-If you wire an LLM to a repository and let it run unattended, these things
-happen — not hypothetically; each one is a real incident this code was shaped by:
-
-- The agent **reports success before the remote proves it**. A push fails
-  three times and the summary still says "✅ landed".
-- A **timeout becomes a later write**: the agent is killed, but a grandchild
-  process (or a retry path) finishes the write after you stopped watching.
-- The write set is derived from **the agent's own tool events**, so anything it
-  did outside the tools you hooked — a shell `sed`, a `mv`, a `git commit` —
-  never gets audited.
-- The agent **commits, rebases, or force-pushes itself**, and now history is
-  the model's opinion.
-- **Ambiguous work is destroyed** to clear a queue: a push that might have
-  landed, a conflict nobody looked at, a run that was interrupted mid-flight.
-- Nobody thinks about **executable bits, symlinks, nested `.git` directories,
-  gitlinks, or ignored files** until one of them ends up on `main`.
-
-gitgate's whole job is to make each of those structurally impossible rather
-than merely unlikely, and to say plainly what it does *not* protect against
-(see [THREAT-MODEL.md](THREAT-MODEL.md)).
+publication* (yours), packaged so you don't have to rediscover the failure
+modes we did.
 
 ## Quick start
 
@@ -268,7 +275,7 @@ Extracted from [Kubrick](https://github.com/tarikh/kubrick-x0000), a
 self-hosted Slack chief-of-staff whose Claude/Codex engine switch needed a way
 to let a second model runtime do real work without letting it own production
 Git writes. The invariants above are the ones that survived contact with a
-live system; the incidents in "Why this exists" are its incidents.
+live system; the incidents in "The problem" are its incidents.
 
 **Status: 0.1 — early.** The contract is stable in intent; option names may
 still move. Kubrick is the first production consumer. Issues and PRs welcome,
