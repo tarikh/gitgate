@@ -106,6 +106,16 @@ test("rejected: a deny glob wins over an allow glob", async () => {
   assert.match(o.reason, /deny pattern "src\/\*\*"/);
 });
 
+test("rejected: deny_create allows edits but not creations in owned paths", async () => {
+  const f = fixture("deny-create");
+  const j = job(f, { policy: { allow: ["docs/**"], deny_create: ["docs/new-*.md"] } });
+  const ok = await run(j, { prompt: "WRITE_ALLOWED" });
+  assert.equal(ok.status, "pushed", ok.reason);
+  const o = await run(j, { prompt: "WRITE_NEW" });
+  assert.equal(o.status, "rejected");
+  assert.match(o.reason, /creating files matching deny_create pattern "docs\/new-\*\.md"/);
+});
+
 test("policy switches: deletions, executables and ignored discards are opt-in and then work", async () => {
   const f = fixture("switches");
   const j = job(f, { policy: { allow: ["docs/**"], allow_deletions: true, allow_executable: true, ignored_files: "discard" } });
@@ -204,7 +214,7 @@ test("recovery: an interrupted run is restored, quarantined and queued — never
   fs.mkdirSync(runDir);
   git(runDir, "clone", "-q", f.remote, checkout);
   fs.renameSync(path.join(checkout, ".git"), path.join(runDir, "trusted.git"));
-  fs.writeFileSync(path.join(runDir, ".active.json"), JSON.stringify({ pid: 999999999 }));
+  // no .active.json at all: died before the first marker — still recovered
   fs.writeFileSync(path.join(checkout, "docs/notes.md"), "interrupted edit\n");
   fs.mkdirSync(path.join(checkout, ".git"));
   const before = remoteHead(f);

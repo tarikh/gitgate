@@ -159,15 +159,19 @@ export function createRunsManager(options: RunsManagerOptions = {}) {
       if (!name.startsWith("run-")) continue;
       const runDir = join(runsDir, name);
       if (!lstatSync(runDir).isDirectory()) continue;
-      if (existsSync(join(runDir, MARKERS.queued))) continue;
+      if (existsSync(join(runDir, MARKERS.queued))) continue; // already waiting for a human
+      if (existsSync(join(runDir, MARKERS.outcome))) continue; // finished run kept with --keep
       const activePath = join(runDir, MARKERS.active);
-      if (!existsSync(activePath)) continue; // finished run kept with --keep
-      try {
-        const active = JSON.parse(readFileSync(activePath, "utf8")) as { pid?: number };
-        if (active.pid && pidAlive(active.pid)) continue;
-      } catch {
-        // unreadable marker: cannot prove liveness, recover conservatively
+      if (existsSync(activePath)) {
+        try {
+          const active = JSON.parse(readFileSync(activePath, "utf8")) as { pid?: number };
+          if (active.pid && pidAlive(active.pid)) continue;
+        } catch {
+          // unreadable marker: cannot prove liveness, recover conservatively
+        }
       }
+      // No markers at all (died between mkdtemp and the first marker) is
+      // recovered too: a run that cannot prove it is live is not live.
       const ws = { runDir, checkout: join(runDir, "checkout"), trustedGit: join(runDir, "trusted.git") };
       let reason = "interrupted run recovered without audit or publication";
       try {

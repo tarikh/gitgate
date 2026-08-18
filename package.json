@@ -1,6 +1,6 @@
 {
   "name": "gitgate",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The model proposes, git decides. Run any AI coding agent in a disposable clone; trusted code audits, publishes, and proves the result.",
   "license": "MIT",
   "author": "Tarikh Korula",

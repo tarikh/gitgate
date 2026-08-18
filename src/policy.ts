@@ -20,6 +20,8 @@ export const PolicySchema = z
     allow: z.array(z.string().min(1)).min(1),
     /** Globs that always reject, even inside `allow`. */
     deny: z.array(z.string().min(1)).default([]),
+    /** Globs the model may modify but not create — for paths some other process owns the creation of. */
+    deny_create: z.array(z.string().min(1)).default([]),
     /** Whole-file deletions (and therefore renames, which git reports as delete + add). */
     allow_deletions: z.boolean().default(false),
     /** Files with any execute bit, or tracked files whose base mode is 100755. */

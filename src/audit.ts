@@ -89,6 +89,10 @@ export async function auditWorkspace(ws: AuditTarget, policy: Policy): Promise<A
     const denied = matchesAny(path, policy.deny);
     if (denied) throw new PolicyViolation(`path matches deny pattern "${denied}": ${path}`, path);
     if (!matchesAny(path, policy.allow)) throw new PolicyViolation(`path is outside the allow-list: ${path}`, path);
+    if (state === "??") {
+      const noCreate = matchesAny(path, policy.deny_create);
+      if (noCreate) throw new PolicyViolation(`creating files matching deny_create pattern "${noCreate}" is not allowed: ${path}`, path);
+    }
 
     if (!deleted) {
       const info = lstatSync(abs);

@@ -202,6 +202,7 @@ engine:
 policy:                     # required for write jobs
   allow: [globs]            # required, non-empty. `docs/` == `docs/**`. `*.md` is top-level only; use `**/*.md`
   deny: [globs]             # always wins over allow
+  deny_create: [globs]      # may be edited but not created (paths another process owns the creation of)
   allow_deletions: false    # renames are delete+add, so this governs them too
   allow_executable: false   # any exec bit, or tracked mode 100755
   ignored_files: reject     # | discard  — what to do when the model writes a git-ignored path
