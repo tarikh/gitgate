@@ -221,7 +221,7 @@ test("recovery: an interrupted run is restored, quarantined and queued — never
 
   const runs = createRunsManager({ runsDir: f.runs, log: () => {} });
   const recovered = await runs.recoverInterrupted();
-  assert.deepEqual(recovered, [runDir]);
+  assert.deepEqual(recovered, [fs.realpathSync(runDir)]);
   assert.ok(fs.existsSync(path.join(checkout, ".git", "HEAD")), "trusted git is back");
   assert.ok(fs.existsSync(path.join(runDir, "quarantined-model-git-0")));
   assert.ok(fs.existsSync(path.join(runDir, ".queued.json")));

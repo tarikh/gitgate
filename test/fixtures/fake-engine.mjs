@@ -17,7 +17,21 @@ const write = (rel, text) => {
   fs.mkdirSync(path.dirname(path.join(cwd, rel)), { recursive: true });
   fs.writeFileSync(path.join(cwd, rel), text);
 };
-const git = (dir, ...args) => execFileSync("git", args, { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+// The fake's own git must not depend on the developer's global config
+// (signing, hooks, default branch) — a real engine's git would, and that is
+// the engine's business, but a test fixture has to be hermetic.
+const git = (dir, ...args) =>
+  execFileSync("git", ["-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", ...args], {
+    cwd: dir,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0" },
+  });
+
+process.on("uncaughtException", (err) => {
+  process.stderr.write(`fake-engine: ${err?.stderr?.toString?.() || err?.message || err}\n`);
+  process.exit(1);
+});
 
 if (has("SLEEP")) {
   // A grandchild that would write AFTER the deadline if only the direct child were killed.
